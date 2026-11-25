@@ -1,0 +1,2 @@
+# Copy to backend/.dev.vars for local Wrangler development; use a fresh random value.
+SETUP_TOKEN=replace_with_a_random_local_setup_token

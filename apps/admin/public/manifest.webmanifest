@@ -1,0 +1,13 @@
+{
+  "name": "SnapKiosk Studio Manager",
+  "short_name": "SnapKiosk",
+  "description": "Manage photo booth rentals, events, kiosks, and galleries.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f5f1",
+  "theme_color": "#f6f5f1",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

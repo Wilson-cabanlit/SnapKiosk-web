@@ -1,0 +1,23 @@
+{
+  "name": "snapkiosk-web",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/admin", "apps/gallery", "backend"],
+  "scripts": {
+    "dev": "concurrently -k -n admin,gallery,api -c blue,magenta,green \"npm:dev:admin\" \"npm:dev:gallery\" \"npm:dev:api\"",
+    "dev:admin": "npm run dev -w @snapkiosk/admin",
+    "dev:gallery": "npm run dev -w @snapkiosk/gallery",
+    "dev:api": "npm run dev -w @snapkiosk/api",
+    "db:migrate": "npm run db:migrate -w @snapkiosk/api",
+    "seed:templates": "npm run seed:templates -w @snapkiosk/api",
+    "setup-owner": "node backend/scripts/setup-owner.mjs",
+    "test": "node --test shared/template-schema/*.test.mjs && npm run test -w @snapkiosk/api && npm run test -w @snapkiosk/admin && npm run test -w @snapkiosk/gallery",
+    "lint": "npm run lint -w @snapkiosk/admin && npm run lint -w @snapkiosk/gallery && npm run lint -w @snapkiosk/api",
+    "build": "npm run build -w @snapkiosk/admin && npm run build -w @snapkiosk/gallery && npm run build -w @snapkiosk/api"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.2",
+    "eslint": "10.15.0"
+  },
+  "engines": { "node": ">=20.19.0" }
+}

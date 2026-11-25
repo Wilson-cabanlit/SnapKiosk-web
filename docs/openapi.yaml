@@ -1,0 +1,513 @@
+openapi: 3.1.0
+info:
+  title: SnapKiosk API
+  version: 0.2.0
+  description: Studio rental operations, kiosk sync, private photo delivery, reports, and integrations.
+servers:
+  - url: http://localhost:8787/api/v1
+    description: Local development
+  - url: https://api.example.com/api/v1
+    description: Replace with the configured production Worker URL
+tags:
+  - name: Auth
+  - name: Operations
+  - name: Devices
+  - name: Delivery
+  - name: Templates
+  - name: Reports
+  - name: Integrations
+paths:
+  /health:
+    get:
+      tags: [Auth]
+      summary: Check API availability
+      responses:
+        '200': { description: API is available }
+  /auth/setup-owner:
+    post:
+      tags: [Auth]
+      summary: Create the first owner with a backend-only setup token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setupToken, email, displayName, password]
+              properties:
+                setupToken: { type: string }
+                email: { type: string, format: email }
+                displayName: { type: string }
+                password: { type: string, minLength: 12, maxLength: 128 }
+      responses:
+        '201': { description: Owner created }
+        '403': { description: Setup token rejected or unavailable }
+        '409': { description: Setup is already complete }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Start an administrator session
+      responses:
+        '200': { description: Session cookie issued }
+        '401': { description: Invalid credentials }
+        '429': { description: Too many sign-in attempts }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: [{ sessionCookie: [] }]
+      summary: Revoke the current session
+      responses:
+        '200': { description: Session revoked }
+  /auth/me:
+    get:
+      tags: [Auth]
+      security: [{ sessionCookie: [] }]
+      summary: Get the current administrator
+      responses:
+        '200': { description: Current account and roles }
+        '401': { description: No active session }
+  /users:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: List user accounts (owner only)
+      responses:
+        '200': { description: Account list }
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Create an administrator or event-staff account (owner only)
+      responses:
+        '201': { description: Account created }
+  /users/{id}/status:
+    patch:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Enable or disable an account (owner only)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Account status updated and existing sessions revoked }
+  /clients:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: List clients
+      responses: { '200': { description: Client list } }
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Create a client
+      responses: { '201': { description: Client created } }
+  /clients/{id}:
+    patch:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Update a client
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Client updated } }
+    delete:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Delete an unused client
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Client deleted }, '409': { description: Client is still referenced } }
+  /packages:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: List rental packages
+      responses: { '200': { description: Package list } }
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Create a rental package
+      responses: { '201': { description: Package created } }
+  /packages/{id}:
+    patch:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Update package pricing or policy
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Package updated } }
+    delete:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Archive a package
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Package archived } }
+  /bookings:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: List bookings with payment balances
+      responses: { '200': { description: Booking list } }
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Create a booking
+      responses: { '201': { description: Booking created }, '409': { description: Overlapping reservation or invalid package } }
+  /bookings/{id}:
+    patch:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Update a booking lifecycle or dates
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Booking updated } }
+  /bookings/{id}/payments:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: List manual payments
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Payment list } }
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Record a manual payment
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '201': { description: Payment recorded }, '409': { description: Payment exceeds remaining balance } }
+  /events:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: List events visible to the current role
+      responses: { '200': { description: Event list } }
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Create an event
+      responses: { '201': { description: Event created } }
+  /events/{id}:
+    get:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Read an event and device assignments
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Event details }, '404': { description: Missing or unassigned event } }
+    patch:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Update event fields or move through valid lifecycle states
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Event updated }, '409': { description: Invalid lifecycle transition } }
+    delete:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Revoke event galleries and schedule owner-authorized photo cleanup
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '202': { description: Deletion scheduled } }
+  /events/{id}/devices:
+    put:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Replace device assignment windows
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Assignments replaced }, '409': { description: Device time conflict } }
+  /events/{id}/staff:
+    put:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Replace event-staff assignments
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Staff assignments replaced } }
+  /events/{id}/delivery-settings:
+    put:
+      tags: [Delivery]
+      security: [{ sessionCookie: [] }]
+      summary: Set event gallery and retention policy
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guestValidityDays, clientValidityDays, retentionDays, originalsEnabled, clientGalleryEnabled]
+              properties:
+                guestValidityDays: { type: integer, enum: [7, 15, 30] }
+                clientValidityDays: { type: integer, enum: [7, 15, 30] }
+                retentionDays: { type: integer, minimum: 7, maximum: 365 }
+                originalsEnabled: { type: boolean }
+                clientGalleryEnabled: { type: boolean }
+      responses: { '200': { description: Event delivery settings saved }, '400': { description: Invalid settings }, '404': { description: Event not found } }
+  /devices/pairing-requests:
+    get:
+      tags: [Devices]
+      security: [{ sessionCookie: [] }]
+      summary: List pending device pairing requests
+      responses: { '200': { description: Pairing requests } }
+    post:
+      tags: [Devices]
+      summary: Register a pairing request from a kiosk
+      responses: { '201': { description: Pairing request created } }
+  /devices/pairing-requests/{id}/approve:
+    post:
+      tags: [Devices]
+      security: [{ sessionCookie: [] }]
+      summary: Approve a pairing request
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Pairing approved } }
+  /devices/pairing/complete:
+    post:
+      tags: [Devices]
+      summary: Complete approved pairing and receive the one-time device credential
+      responses: { '200': { description: Device credential issued once } }
+  /devices:
+    get:
+      tags: [Devices]
+      security: [{ sessionCookie: [] }]
+      summary: List registered kiosks and last heartbeat values
+      responses: { '200': { description: Device list } }
+    post:
+      tags: [Devices]
+      security: [{ sessionCookie: [] }]
+      summary: Register a kiosk manually and issue a one-time credential
+      responses: { '201': { description: Device registered } }
+  /devices/{id}/rotate-credential:
+    post:
+      tags: [Devices]
+      security: [{ sessionCookie: [] }]
+      summary: Revoke prior credentials and issue a replacement
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Credential rotated } }
+  /devices/{id}/revoke:
+    post:
+      tags: [Devices]
+      security: [{ sessionCookie: [] }]
+      summary: Revoke a kiosk and cancel queued commands
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Device revoked } }
+  /devices/heartbeat:
+    post:
+      tags: [Devices]
+      security: [{ deviceBearer: [] }]
+      summary: Submit a kiosk heartbeat
+      responses: { '200': { description: Heartbeat received } }
+  /devices/configuration:
+    get:
+      tags: [Devices]
+      security: [{ deviceBearer: [] }]
+      summary: Get the latest configuration for the active assignment
+      responses:
+        '200':
+          description: Published configuration or no assignment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: [object, 'null']
+                    properties:
+                      eventId: { type: string }
+                      eventName: { type: string }
+                      version: { type: integer }
+                      configuration:
+                        type: object
+                        properties:
+                          configurationSchemaVersion: { type: string, enum: ['1.0'] }
+                          templateSchemaVersion: { type: string, enum: ['1.0'] }
+                          templateVersion: { type: integer }
+                          templateVersionId: { type: string }
+                          template:
+                            type: object
+                            required: [schemaVersion, outputFormat, width, height, elements]
+                            properties:
+                              schemaVersion: { type: string, enum: ['1.0'] }
+                              orientation: { type: string, enum: [portrait, landscape, square] }
+                              outputFormat: { type: string }
+                              width: { type: integer }
+                              height: { type: integer }
+                              printSettings:
+                                type: object
+                                properties:
+                                  printOrientation: { type: string, enum: [auto, original, rotate-clockwise, rotate-counterclockwise], default: auto }
+                                  thermalRotation: { type: string, enum: [clockwise, counterclockwise], default: clockwise }
+                                  printableWidths:
+                                    type: object
+                                    properties:
+                                      thermal58: { type: integer, default: 384 }
+                                      thermal80: { type: integer, default: 576 }
+                                  digitalReceiptOrientation: { type: string, enum: [original, thermal], default: original }
+                              elements: { type: array, items: { type: object } }
+                              variants: { type: object, additionalProperties: { type: object } }
+  /devices/commands/poll:
+    post:
+      tags: [Devices]
+      security: [{ deviceBearer: [] }]
+      summary: Poll for one queued kiosk command
+      responses: { '200': { description: Command or empty queue } }
+  /devices/commands/{id}/ack:
+    post:
+      tags: [Devices]
+      security: [{ deviceBearer: [] }]
+      summary: Acknowledge or fail a kiosk command
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Command acknowledged } }
+  /device/sessions:
+    post:
+      tags: [Delivery]
+      security: [{ deviceBearer: [] }]
+      summary: Register an online or delayed offline photo session with consent and idempotency
+      responses: { '201': { description: Session and stable guest URL registered }, '409': { description: Device not assigned at capture time } }
+  /device/sessions/{sessionId}/assets:
+    post:
+      tags: [Delivery]
+      security: [{ deviceBearer: [] }]
+      summary: Authorize a private image upload with an expected checksum and size
+      parameters: [{ in: path, name: sessionId, required: true, schema: { type: string } }]
+      responses: { '201': { description: Short-lived one-time upload authorization } }
+  /uploads/{jobId}:
+    put:
+      tags: [Delivery]
+      summary: Upload raw image bytes using the one-time token and checksum headers
+      parameters:
+        - { in: path, name: jobId, required: true, schema: { type: string } }
+        - { in: header, name: X-Upload-Token, required: true, schema: { type: string } }
+        - { in: header, name: X-Content-SHA256, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content: { image/jpeg: { schema: { type: string, format: binary } }, image/png: { schema: { type: string, format: binary } }, image/webp: { schema: { type: string, format: binary } }, image/gif: { schema: { type: string, format: binary } } }
+      responses: { '200': { description: Checksum verified and photo stored privately }, '422': { description: Checksum mismatch } }
+  /gallery/guest/{token}:
+    get:
+      tags: [Delivery]
+      summary: Read the state and photos for a private guest link
+      parameters: [{ in: path, name: token, required: true, schema: { type: string } }]
+      responses: { '200': { description: Pending or authorized gallery }, '404': { description: Invalid token }, '410': { description: Expired or revoked link } }
+  /gallery/client/{token}:
+    get:
+      tags: [Delivery]
+      summary: Read an event-wide client album with separately consented sessions
+      parameters: [{ in: path, name: token, required: true, schema: { type: string } }]
+      responses: { '200': { description: Authorized client album }, '410': { description: Expired or revoked link } }
+  /events/{id}/client-gallery-access:
+    post:
+      tags: [Delivery]
+      security: [{ sessionCookie: [] }]
+      summary: Create an event-wide client album link after enabling it in event delivery settings
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '201': { description: Client album URL returned once }, '404': { description: Event not found }, '409': { description: Client gallery is disabled for this event } }
+  /sessions/{id}/extend:
+    post:
+      tags: [Delivery]
+      security: [{ sessionCookie: [] }]
+      summary: Extend a guest photo link
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Access period extended } }
+  /sessions/{id}/revoke:
+    post:
+      tags: [Delivery]
+      security: [{ sessionCookie: [] }]
+      summary: Revoke a guest photo link
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Access revoked } }
+  /templates:
+    get:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: List versioned templates, free built-ins, variants, and favorites
+      responses: { '200': { description: Template catalog, rendered schema data, and legacy fixtures } }
+    post:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: Create a template and initial version
+      responses: { '201': { description: Template created } }
+  /templates/{id}/duplicate:
+    post:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: Create an editable copy of a template
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '201': { description: Template copy created } }
+  /templates/{id}/favorite:
+    post:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: Add a template to the current user's favorites
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Template favorited } }
+    delete:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: Remove a template from the current user's favorites
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses: { '200': { description: Template unfavorited } }
+  /assets:
+    get:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: List private design assets
+      responses: { '200': { description: Asset metadata } }
+    post:
+      tags: [Templates]
+      security: [{ sessionCookie: [] }]
+      summary: Upload a private asset with multipart form data
+      responses: { '201': { description: Asset uploaded } }
+  /reports/bookings.csv:
+    get:
+      tags: [Reports]
+      security: [{ sessionCookie: [] }]
+      summary: Download booking and payment report
+      responses: { '200': { description: CSV report } }
+  /reports/events.csv:
+    get:
+      tags: [Reports]
+      security: [{ sessionCookie: [] }]
+      summary: Download event report
+      responses: { '200': { description: CSV report } }
+  /reports/devices.csv:
+    get:
+      tags: [Reports]
+      security: [{ sessionCookie: [] }]
+      summary: Download kiosk report
+      responses: { '200': { description: CSV report } }
+  /reports/uploads.csv:
+    get:
+      tags: [Reports]
+      security: [{ sessionCookie: [] }]
+      summary: Download upload report
+      responses: { '200': { description: CSV report } }
+  /integrations/google-drive/connect:
+    get:
+      tags: [Integrations]
+      security: [{ sessionCookie: [] }]
+      summary: Start Google Drive OAuth connection
+      responses: { '302': { description: Redirect to Google authorization } }
+  /integrations/google-drive/exports:
+    get:
+      tags: [Integrations]
+      security: [{ sessionCookie: [] }]
+      summary: List asynchronous Drive exports
+      responses: { '200': { description: Export jobs } }
+    post:
+      tags: [Integrations]
+      security: [{ sessionCookie: [] }]
+      summary: Queue a consent-filtered event album export
+      responses: { '202': { description: Export queued } }
+  /privacy/deletion-request:
+    post:
+      tags: [Operations]
+      security: [{ sessionCookie: [] }]
+      summary: Request account, event, or studio data deletion
+      responses: { '201': { description: Deletion request recorded } }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: snapkiosk_session
+    deviceBearer:
+      type: http
+      scheme: bearer
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }

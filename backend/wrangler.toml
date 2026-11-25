@@ -1,0 +1,23 @@
+name = "snapkiosk-api"
+main = "src/index.js"
+compatibility_date = "2026-11-25"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_ENV = "development"
+ADMIN_ORIGIN = "http://localhost:5173"
+GALLERY_ORIGIN = "http://localhost:5174"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "snapkiosk-db"
+database_id = "00000000-0000-4000-8000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "PHOTO_BUCKET"
+bucket_name = "snapkiosk-photos"
+preview_bucket_name = "snapkiosk-photos-preview"
+
+[triggers]
+crons = ["17 2 * * *"]

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "fixtures": [
+    {
+      "name": "Classic 2x6",
+      "description": "Two stacked portraits with a simple footer.",
+      "outputFormat": "2x6",
+      "width": 600,
+      "height": 1800,
+      "background": "#ffffff",
+      "elements": [
+        { "id": "photo-top", "type": "photo", "x": 30, "y": 30, "width": 540, "height": 820, "fit": "cover", "zIndex": 1 },
+        { "id": "photo-bottom", "type": "photo", "x": 30, "y": 900, "width": 540, "height": 760, "fit": "cover", "zIndex": 1 },
+        { "id": "footer", "type": "text", "x": 30, "y": 1680, "width": 540, "height": 80, "text": "A moment to remember", "fontSize": 30, "color": "#333333", "align": "center", "zIndex": 2 }
+      ]
+    },
+    {
+      "name": "Square Keepsake",
+      "description": "A square portrait with a branded caption.",
+      "outputFormat": "4x4",
+      "width": 1200,
+      "height": 1200,
+      "background": "#f5f1ea",
+      "elements": [
+        { "id": "photo-main", "type": "photo", "x": 60, "y": 60, "width": 1080, "height": 930, "fit": "cover", "zIndex": 1 },
+        { "id": "caption", "type": "text", "x": 60, "y": 1020, "width": 1080, "height": 120, "text": "Our favorite day", "fontSize": 46, "color": "#443f38", "align": "center", "zIndex": 2 }
+      ]
+    }
+  ]
+}
